@@ -9,8 +9,8 @@ repositories {
 
 allprojects {
     tasks.withType(JavaCompile) {
-        sourceCompatibility = '1.7'
-        targetCompatibility = '1.7'
+        sourceCompatibility = '1.8'
+        targetCompatibility = '1.8'
     }
 }
 
@@ -82,3 +82,5 @@ dependencies {
     compile 'com.neovisionaries:nv-websocket-client:2.14'
     compile group: 'org.json', name: 'json', version: '20220924'
 }
+sourceCompatibility = JavaVersion.VERSION_1_8
+targetCompatibility = JavaVersion.VERSION_1_8
