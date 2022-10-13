@@ -1,22 +1,38 @@
+import com.auth0.jwt.JWT;
+import com.auth0.jwt.algorithms.Algorithm;
 import com.neovisionaries.ws.client.WebSocketException;
 import com.neovisionaries.ws.client.WebSocketFrame;
 import io.github.sac.*;
 
+
+import java.util.Calendar;
 import java.util.List;
 import java.util.Map;
 
+
 /**
- * Created by sachin on 8/11/16.
+ * Created by iartichshev@crystalspring.kz on 12/10/2022.
  */
 
 public class Main {
 
-    public static String url="ws://localhost:8000/socketcluster/";
+    private static final String url= "https://test.cs.kz:1234/sc_mobile/";
+    private static final String secret = "123456";
+    private static final String login = "2BE175BB64";
+
+    private static String getJWT(String login) {
+        Calendar vCalendar = Calendar.getInstance();
+        vCalendar.add(Calendar.MINUTE, 5); // current date  + 5 minutes
+        return JWT.create()
+                .withIssuer("CS")
+                .withAudience("SBI")
+                .withExpiresAt(vCalendar.getTime())
+                .withClaim("u", login)
+                .sign(Algorithm.HMAC256(secret));
+    }
 
     public static void main(String arg[]) {
-
         Socket socket = new Socket(url);
-
         socket.setListener(new BasicListener() {
 
             public void onConnected(Socket socket,Map<String, List<String>> headers) {
@@ -40,133 +56,39 @@ public class Main {
                 if (status) {
                     System.out.println("socket is authenticated");
                 } else {
-                    System.out.println("Authentication is required (optional)");
+                    System.out.println("Authentication is required");
                 }
             }
-
         });
-
-        socket.setReconnection(new ReconnectStrategy().setDelay(3000).setMaxAttempts(10)); //Connect after each 2 seconds for 30 times
-
-
-        socket.connectAsync();
-
-
+        socket.setAuthToken(getJWT(login));
+        socket.setReconnection(new ReconnectStrategy().setDelay(3000).setMaxAttempts(10));
         socket.disableLogging();
-
-
-        socket.emit("chat","Hi");
-
-        socket.emit("chat", "Hi", new Ack() {
-            @Override
-            public void call(String eventName, Object error, Object data) {
-                System.out.println("Got message for :"+eventName+" error is :"+error+" data is :"+data);
-            }
-        });
-
-        socket.on("yell", new Emitter.Listener() {
-            @Override
-            public void call(String eventName, Object data) {
-                System.out.println("Got message for :"+eventName+" data is :"+data);
-            }
-        });
-
-        socket.on("yell", new Emitter.AckListener() {
-            @Override
-            public void call(String eventName, Object data, Ack ack) {
-                System.out.println("Got message for :"+eventName+" data is :"+data);
-                //sending ack back
-
-                ack.call(eventName,"This is error","This is data");
-            }
-        });
-//
-//
-        Socket.Channel channel = socket.createChannel("yell");
-//
-        channel.subscribe(new Ack() {
-            @Override
-            public void call(String channelName, Object error, Object data) {
-                if (error==null){
-                    System.out.println("Subscribed to channel "+channelName+" successfully");
-                }
-            }
-        });
-
         try {
-            Thread.sleep(2000);
-        } catch (InterruptedException e) {
+            socket.connect();
+
+            // subs to users channel
+            Socket.Channel channel = socket.createChannel("sbi." + login);
+            channel.onMessage(new Emitter.Listener() {
+                public void call(String channel, Object data) {
+                    // ignore any with data.code=1!
+                    System.out.println(channel + ": got message " + data);
+                }
+            });
+
+            Thread.sleep(1000); // wait for connect?
+//            while (!socket.isconnected()) { // don't work!?
+//                Thread.sleep(100);
+//            }
+
+
+            socket.emit("sbi.sc", new Message("ping", "test"));
+//            socket.emit("sbi.sc", new Message("kase.getSec", new JSONObject().put("secCode","KZAP")));
+//            socket.emit("sbi.sc", new Message("rep.iex.news.v2", new JSONArray().put("AAPL").put("FB")));
+//            socket.emit("sbi.sc", new Message("rep.iex.quote.v2", new JSONObject().put("stock", new JSONArray().put("AAPL").put("FB"))));
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
-
-        channel.publish("Hi sachin", new Ack() {
-            @Override
-            public void call(String channelName, Object error, Object data) {
-                if (error==null){
-                    System.out.println("Published message to channel "+channelName+" successfully");
-                }
-            }
-        });
-
-        channel.onMessage(new Emitter.Listener() {
-            @Override
-            public void call(String channelName, Object data) {
-
-                System.out.println("Got message for channel "+channelName+" data is "+data);
-            }
-        });
-
-        channel.unsubscribe(new Ack() {
-            @Override
-            public void call(String name, Object error, Object data) {
-                System.out.println("Unsubscribed to channel successfully");
-            }
-        });
-//        channel.unsubscribe();
-
-//        channel.subscribe(new Ack() {
-//                              @Override
-//                              public void call(String name, Object error, Object data) {
-//
-//                              }
-//          });
-////
-//        channel.onMessage(new Emitter.Listener() {
-//            public void call(Object object) {
-//                System.out.println("got message " + object);
-//            }
-//        });
-
-//
-//
-//
-//        socket.on("chat", new Emitter.Listener() {
-//            public void call(Object object) {
-//                System.out.println("Got echo event :: " + object);
-//            }
-//        });
-//
-//
-//
-//        socket.emit("chat", "hi", new Ack() {
-//            public void call(Object error, Object data) {
-//
-//            }
-//        });
-//
-//
-//
-//        while (true) {
-//            Scanner scanner = new Scanner(System.in);
-//
-//            channel.publish(scanner.nextLine(), new Ack() {
-//                public void call(Object error, Object data) {
-//                    if (error == null) {
-//                        System.out.println("Publish sent successfully");
-//                    }
-//                }
-//            });
-//        }
-
     }
+
 }

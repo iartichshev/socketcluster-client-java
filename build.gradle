@@ -78,6 +78,7 @@ bintray{
 }
 
 dependencies {
-    compile 'com.neovisionaries:nv-websocket-client:1.30'
-    compile group: 'org.json', name: 'json', version: '20090211'
+    compile 'com.auth0:java-jwt:4.1.0'
+    compile 'com.neovisionaries:nv-websocket-client:2.14'
+    compile group: 'org.json', name: 'json', version: '20220924'
 }
